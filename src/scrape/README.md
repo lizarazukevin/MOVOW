@@ -15,8 +15,7 @@ Currently obtains the following information about a movie:
 ------------------------------------------------------------------
 To run scraaaaaaaaaaape.py:
 
-python3 .\scraaaaaaaaaaape.py *starting ID* *ending ID*
+python3 .\scraaaaaaaaaaape.py [*starting ID*] [*ending ID*]
 
 Example: python3 .\scraaaaaaaaaaape.py 0 10
-------------------------------------------------------------------
 
