@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from time import sleep
+import sys
 
 
 def getData(url, headers):
@@ -87,12 +88,12 @@ def scrape(url, database):
             database[title] = movie[title]
 
 
-def main():
+def main(start, stop):
     BASE_URL = "https://www.themoviedb.org/movie/"
     with open("disgustingDatabase.json", 'r') as jFile:
         dataDict = json.load(jFile)
 
-    for i in range(0, 1):
+    for i in range(start, stop):
         print(i)
         scrape(BASE_URL + str(i), dataDict)
         # Delay so I don't get IP banned
@@ -103,4 +104,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    print(sys.argv)
+    if len(sys.argv) == 3:
+        starting_index = int(sys.argv[1])
+        ending_index = int(sys.argv[2])
+        if starting_index >= ending_index:
+            print("Invalid index range")
+        else:
+            main(starting_index, ending_index)
+    else:
+        print("Invalid number of arguments")
