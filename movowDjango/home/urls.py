@@ -12,5 +12,5 @@ urlpatterns = [
     path("search/", views.SearchView.as_view(), name="search"),
     path("movie/", views.MovieView.as_view(), name="movieinfo"),
     path("show/", views.ShowView.as_view(), name="showinfo"),
-    path("actor/", views.HomeView.as_view(), name="actor"),
+    path("actor/", views.ActorView.as_view(), name="actor"),
 ]
