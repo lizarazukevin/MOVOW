@@ -10,7 +10,8 @@ import pymongo
 def main(start: int, stop: int, media: str) -> None:
     BASE_URL = "https://api.themoviedb.org/3/" + media + "/"
     try:
-        client = pymongo.MongoClient("mongodb+srv://jasperemick:lB7P6QQdJtrox4k9@movow1.yk4hwgi.mongodb.net"
+        client = pymongo.MongoClient("mongodb+srv://jasperemick:lB7P6QQdJtrox4k9"
+                                     "@movow1.yk4hwgi.mongodb.net"
                                      "/?retryWrites=true&w=majority")
     except:
         pass
@@ -36,18 +37,23 @@ def main(start: int, stop: int, media: str) -> None:
 
     movie_collection = db["movies"]
     people_collection = db["people"]
+    review_collection = db["reviews"]
+
     movie_collection.drop()
-    result = movie_collection.create_index("tag", unique=True)
+    movie_collection.create_index("tag", unique=True)
 
     people_collection.drop()
-    result = people_collection.create_index("tag", unique=True)
+    people_collection.create_index("tag", unique=True)
+
+    review_collection.drop()
+    review_collection.create_index("tag", unique=True)
 
     for i in range(start, stop):
         print(i)
-        reaper(BASE_URL + str(i), movie_collection, people_collection, headers)
+        reaper(BASE_URL + str(i), movie_collection, people_collection, review_collection, headers)
         sleep(1.0)
 
-
+    list(movie_collection.find())
     # res = people_collection.insert_many(personDict)
 
     # print(res)
@@ -76,8 +82,11 @@ def tv_reaper(url: str, database: list, peoplebase: list, identification: dict, 
     database.append(details)
 
 
-def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
-                 people_collection: pymongo.collection.Collection, headers: dict) -> None:
+def movie_reaper(url: str,
+                 movie_collection: pymongo.collection.Collection,
+                 people_collection: pymongo.collection.Collection,
+                 review_collection: pymongo.collection.Collection,
+                 headers: dict) -> None:
     response = requests.get(url=url, headers=headers)
     details = response.json()
     print(url)
@@ -85,19 +94,25 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
     if "success" in details.keys() and details["success"] is False:
         return
     """
+    
+    
+    
         GET ALL OF THE IMPORTANT MOVIE DETAILS
+        
+        
+        
     """
     movie_entry = {}
     # Provides movies with an incrementing ID that's protected by a unique tag
     name = details["title"].replace(' ', '_').lower().strip()
     name = re.sub(r'\W+', '', name)
     date = details["release_date"].replace('-', '_').strip()
-    id_tag_movie = name + '-' + date
+    id_tag_movie = name + '_' + date
 
-    index = len(list(movie_collection.find()))
+    movie_index = len(list(movie_collection.find()))
 
     # Get movie info
-    movie_entry["id"] = index
+    movie_entry["id"] = movie_index
     movie_entry["tag"] = id_tag_movie
     movie_entry["title"] = details["title"]
     movie_entry["original_title"] = details["original_title"]
@@ -116,7 +131,13 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
     movie_entry["number_of_ratings"] = details["vote_count"]
     response.close()
     """
+    
+    
+    
         GET PEOPLE FROM THE MOVIE, REGISTER THEIR PROFILES AND ADD THEM TO THE MOVIE ENTRY
+        
+        
+        
     """
     credits_url = url + "/credits"
     response = requests.get(url=credits_url, headers=headers)
@@ -137,9 +158,9 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
             birth = "0000_00_00"
         id_tag_person = name + '_' + birth
 
-        index = len(list(people_collection.find()))
+        person_index = len(list(people_collection.find()))
 
-        people_entry["id"] = index
+        people_entry["id"] = person_index
         people_entry["tag"] = id_tag_person
         people_entry["name"] = details["name"]
         people_entry["also_known_as"] = details["also_known_as"]
@@ -157,7 +178,7 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
             print("Duplicate Person: ", people_entry["name"])
 
         movie_entry["cast"].append({
-            "id": index,
+            "id": person_index,
             "name": person["name"],
             "character": person["character"]
         })
@@ -178,9 +199,9 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
             birth = "0000_00_00"
         id_tag_person = name + '_' + birth
 
-        index = len(list(people_collection.find()))
+        person_index = len(list(people_collection.find()))
 
-        people_entry["id"] = index
+        people_entry["id"] = person_index
         people_entry["tag"] = id_tag_person
         people_entry["name"] = details["name"]
         people_entry["also_known_as"] = details["also_known_as"]
@@ -198,12 +219,70 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
             print("Duplicate Person: ", people_entry["name"])
 
         movie_entry["crew"].append({
+            "id": person_index,
             "name": person["name"],
             "department": person["department"],
             "job": person["job"]
         })
     response.close()
+    """      
+    
+    
+     
+        REVIEWS
+        
+        
+        
+    """
+    reviews_url = url + "/reviews"
+    response = requests.get(url=reviews_url, headers=headers)
+    reviews_TMDB = response.json()
 
+    movie_entry["reviews"] = []
+    for review in reviews_TMDB["results"]:
+        review_entry = {}
+        reviewsurl = "https://api.themoviedb.org/3/review/" + str(review["id"])
+        response_review = requests.get(url=reviewsurl, headers=headers)
+
+        details = response_review.json()
+        name = details["author_details"]["username"].replace(' ', '_').lower().strip()
+        name = re.sub(r'\W+', '', name)
+        title = details["media_title"].replace('-', '_').lower().strip()
+        title = re.sub(r'\W+', '', title)
+        id_tag_review = name + '_' + title
+
+        review_index = len(list(review_collection.find()))
+
+        review_entry["id"] = review_index
+        review_entry["tag"] = id_tag_review
+        review_entry["author_name"] = details["author_details"]["name"]
+        review_entry["author_username"] = details["author_details"]["username"]
+        review_entry["rating"] = details["author_details"]["rating"]
+        review_entry["origin"] = "TMDB"
+        review_entry["content"] = details["content"]
+        review_entry["media_id"] = details["media_id"]
+        review_entry["media"] = details["media_title"]
+        review_entry["media_type"] = details["media_type"]
+        review_entry["created"] = details["created_at"]
+        review_entry["updated"] = details["updated_at"]
+        review_entry["reference"] = details["url"]
+
+        response_review.close()
+
+        try:
+            review_collection.insert_one(review_entry)
+            print("Review Added: ", review_entry["author_name"])
+        except pymongo.errors.DuplicateKeyError:
+            print("Duplicate Person: ", review_entry["author_name"])
+
+        movie_entry["reviews"].append({
+            "id": review_index,
+            "author_name": review["author_details"]["name"],
+            "author_username": review["author_details"]["username"],
+            "origin": "TMDB",
+            "rating": review["author_details"]["rating"],
+        })
+    response.close()
     try:
         movie_collection.insert_one(movie_entry)
         print("Movie Added: ", movie_entry["title"])
@@ -211,37 +290,19 @@ def movie_reaper(url: str, movie_collection: pymongo.collection.Collection,
         print("Duplicate Movie: ", movie_entry["title"])
     return
     """
-        NOT IMPLEMENTED
-        
-        REVIEWS
+    
+    
+    
+        PROVIDERS - NOT IMPLEMENTED
+    
+    
+    
     """
-    reviews_url = url + "/reviews"
-    response = requests.get(url=reviews_url, headers=headers)
-    reviews_TMDB = response.json()
-
-    entry["reviews"] = []
-    for review in reviews_TMDB["results"]:
-        author_details = [{
-            "name": review["author_details"]["name"],
-            "username_tmdb": review["author_details"]["username"],
-            "rating": review["author_details"]["rating"]
-        }]
-
-        entry["reviews"].append({
-            "author_details": author_details,
-            "content": review["content"],
-            "date_created": review["created_at"],
-            "date_updated": review["updated_at"],
-            "url_tmdb": review["url"]
-        })
-    response.close()
-
     providers_url = url + "/watch/providers"
     response = requests.get(url=providers_url, headers=headers)
     watch = response.json()
 
     entry["providers"] = []
-
     for key in watch["results"].keys():
         language = watch["results"][key]
 
