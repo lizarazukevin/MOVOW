@@ -19,4 +19,4 @@ Our design philosophy is agile development powered with CI/CD pipelines that hel
 Current in development as of 09/16/2023
 
 ## Contribution
-Contact the repo admin for contribution opportunities. Found a bug? Please [submit an issue](https://github.ocm/MOVOW/MOVOW/issues/new)
+Contact the repo admin for contribution opportunities. Found a bug? Please [submit an issue](https://github.com/lizarazukevin/MOVOW/compare)
