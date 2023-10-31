@@ -6,8 +6,8 @@ import sys
 import argparse
 
 
-def main(start: int, stop: int, media: str, api_auth: str) -> None:
-    BASE_URL = "https://api.themoviedb.org/3/" + media + "/"
+def main(start: int, stop: int, api_auth: str) -> None:
+    BASE_URL = "https://api.themoviedb.org/3/movie/"
     try:
         client = pymongo.MongoClient("mongodb+srv://jasperemick:lB7P6QQdJtrox4k9"
                                      "@movow1.yk4hwgi.mongodb.net"
@@ -16,11 +16,6 @@ def main(start: int, stop: int, media: str, api_auth: str) -> None:
         return
 
     db = client.movow1
-
-    if media == "movie":
-        reaper = movie_reaper
-    else:
-        reaper = tv_reaper
 
     headers = {
         "accept": "application/json",
@@ -45,26 +40,9 @@ def main(start: int, stop: int, media: str, api_auth: str) -> None:
 
     for i in range(start, stop):
         print(i)
-        reaper(BASE_URL + str(i), movie_collection, people_collection, review_collection, providers_collection, headers)
+        movie_reaper(BASE_URL + str(i), movie_collection, people_collection, review_collection, providers_collection,
+                     headers)
         sleep(1.0)
-
-
-def tv_reaper(url: str, database: list, peoplebase: list, identification: dict, headers: dict) -> None:
-    response = requests.get(url=url + "/season/3", headers=headers)
-    details = response.json()
-    print(url)
-    if "success" in details.keys() and details["success"] is False:
-        return
-    entry = {}
-    # An effort to id movies/prevent duplicates, most likely flawed in some edge cases
-    if details["name"] in identification["shows"].keys():
-        return
-    size = len(identification["shows"].keys())
-    name = details["name"].replace(' ', '_').strip().lower()
-    identification["shows"][name] = size
-    entry["id"] = size
-
-    database.append(details)
 
 
 def movie_reaper(url: str,
@@ -94,6 +72,7 @@ def movie_reaper(url: str,
     name = re.sub(r'\W+', '', name)
     date = details["release_date"].replace('-', '_').strip()
     id_tag_movie = name + '_' + date
+    # duplication prevention could be handled here
 
     movie_index = len(list(movie_collection.find()))
 
@@ -384,7 +363,6 @@ def getProviders(method: str, region: dict, iso: any, provider_list: list, movie
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser("movie trotter")
     parser.add_argument("start", help="The starting movie ID (int) value for the trotter to begin at")
     parser.add_argument("end", help="The final movie ID (int) value for the trotter to finish at")
@@ -393,6 +371,6 @@ if __name__ == "__main__":
     start = int(args.start)
     end = int(args.end)
 
-    main(start, end, "movie", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0NWFkMWQ5YzE0ZGVlNjAxZjJmMDZiNGZkY"
-                              "jJmMmQ5NSIsInN1YiI6IjY1MWM1MzNlZWE4NGM3MDEwYzE0N2M5YiIsInNjb3BlcyI6WyJhcG"
-                              "lfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.kaQbTtDsjaWixw5bn3RI-KpZJnHW622dbDbgThzrkaU")
+    main(start, end, "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0NWFkMWQ5YzE0ZGVlNjAxZjJmMDZiNGZkY"
+                     "jJmMmQ5NSIsInN1YiI6IjY1MWM1MzNlZWE4NGM3MDEwYzE0N2M5YiIsInNjb3BlcyI6WyJhcG"
+                     "lfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.kaQbTtDsjaWixw5bn3RI-KpZJnHW622dbDbgThzrkaU")
