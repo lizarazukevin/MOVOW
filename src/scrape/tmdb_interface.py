@@ -2,9 +2,11 @@ import requests
 from time import sleep
 import re
 import pymongo
+import sys
+import argparse
 
 
-def main(start: int, stop: int, media: str) -> None:
+def main(start: int, stop: int, media: str, api_auth: str) -> None:
     BASE_URL = "https://api.themoviedb.org/3/" + media + "/"
     try:
         client = pymongo.MongoClient("mongodb+srv://jasperemick:lB7P6QQdJtrox4k9"
@@ -22,9 +24,7 @@ def main(start: int, stop: int, media: str) -> None:
 
     headers = {
         "accept": "application/json",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0NWFkMWQ5YzE0ZGVlNjAxZjJmMDZiNGZkYjJmMmQ5NSIsInN1YiI6I"
-                         "jY1MWM1MzNlZWE4NGM3MDEwYzE0N2M5YiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.kaQbTtDsjaW"
-                         "ixw5bn3RI-KpZJnHW622dbDbgThzrkaU"
+        "Authorization": api_auth
     }
 
     movie_collection = db["movies"]
@@ -345,7 +345,6 @@ def movie_reaper(url: str,
 
 def getProviders(method: str, region: dict, iso: any, provider_list: list, movie_entry: dict,
                  providers_collection: pymongo.collection.Collection):
-
     for provider in region[method]:
         provider_list.append({
             "provider_name": provider["provider_name"]
@@ -385,4 +384,15 @@ def getProviders(method: str, region: dict, iso: any, provider_list: list, movie
 
 
 if __name__ == "__main__":
-    main(0, 100, "movie")
+
+    parser = argparse.ArgumentParser("movie trotter")
+    parser.add_argument("start", help="The starting movie ID (int) value for the trotter to begin at")
+    parser.add_argument("end", help="The final movie ID (int) value for the trotter to finish at")
+    args = parser.parse_args()
+
+    start = int(args.start)
+    end = int(args.end)
+
+    main(start, end, "movie", "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0NWFkMWQ5YzE0ZGVlNjAxZjJmMDZiNGZkY"
+                              "jJmMmQ5NSIsInN1YiI6IjY1MWM1MzNlZWE4NGM3MDEwYzE0N2M5YiIsInNjb3BlcyI6WyJhcG"
+                              "lfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.kaQbTtDsjaWixw5bn3RI-KpZJnHW622dbDbgThzrkaU")

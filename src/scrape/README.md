@@ -3,19 +3,9 @@ assigned for each movie on the website
 
 ID values are *int* type
 
-Currently obtains the following information about a movie:
+To run tmdb_interface.py:
 
-	- Title
-	- Release Date
-	- Genres
-	- Runtime
-	- Cast members and corresponding character(s)
-	- Crew members and corresponding role(s)
+python .\src\scrape\tmdb_interface.py [*starting ID*] [*ending ID*]
 
-------------------------------------------------------------------
-To run scraaaaaaaaaaape.py:
-
-python3 .\scraaaaaaaaaaape.py [*starting ID*] [*ending ID*]
-
-Example: python3 .\scraaaaaaaaaaape.py 0 10
+Example: python .\src\scrape\tmdb_interface.py 0 10
 
