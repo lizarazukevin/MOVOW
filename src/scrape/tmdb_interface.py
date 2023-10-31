@@ -1,8 +1,5 @@
 import requests
-from bs4 import BeautifulSoup
-import json
 from time import sleep
-import sys
 import re
 import pymongo
 
@@ -38,22 +35,24 @@ def main(start: int, stop: int, media: str) -> None:
     movie_collection = db["movies"]
     people_collection = db["people"]
     review_collection = db["reviews"]
+    providers_collection = db["providers"]
 
-    movie_collection.drop()
-    movie_collection.create_index("tag", unique=True)
-
-    people_collection.drop()
-    people_collection.create_index("tag", unique=True)
-
-    review_collection.drop()
-    review_collection.create_index("tag", unique=True)
+    # movie_collection.drop()
+    # movie_collection.create_index("tag", unique=True)
+    #
+    # people_collection.drop()
+    # people_collection.create_index("tag", unique=True)
+    #
+    # review_collection.drop()
+    # review_collection.create_index("tag", unique=True)
+    #
+    # providers_collection.drop()
 
     for i in range(start, stop):
         print(i)
-        reaper(BASE_URL + str(i), movie_collection, people_collection, review_collection, headers)
+        reaper(BASE_URL + str(i), movie_collection, people_collection, review_collection, providers_collection, headers)
         sleep(1.0)
 
-    list(movie_collection.find())
     # res = people_collection.insert_many(personDict)
 
     # print(res)
@@ -86,6 +85,7 @@ def movie_reaper(url: str,
                  movie_collection: pymongo.collection.Collection,
                  people_collection: pymongo.collection.Collection,
                  review_collection: pymongo.collection.Collection,
+                 providers_collection: pymongo.collection.Collection,
                  headers: dict) -> None:
     response = requests.get(url=url, headers=headers)
     details = response.json()
@@ -168,6 +168,14 @@ def movie_reaper(url: str,
         people_entry["death"] = details["deathday"]
         people_entry["gender"] = details["gender"]
         people_entry["popular_department"] = details["known_for_department"]
+        people_entry["cast_experience"] = [
+            {
+                "id": movie_index,
+                "media": movie_entry["title"],
+                "character": person["character"]
+            }
+        ]
+        people_entry["crew_experience"] = []
 
         response_person.close()
 
@@ -175,6 +183,12 @@ def movie_reaper(url: str,
             people_collection.insert_one(people_entry)
             print("Person Added: ", people_entry["name"])
         except pymongo.errors.DuplicateKeyError:
+            people_collection.find_one_and_update(filter={"tag": id_tag_person},
+                                                  update={"$push": {"cast_experience": {
+                                                      "id": movie_index,
+                                                      "media": movie_entry["title"],
+                                                      "character": person["character"]
+                                                  }}})
             print("Duplicate Person: ", people_entry["name"])
 
         movie_entry["cast"].append({
@@ -209,13 +223,28 @@ def movie_reaper(url: str,
         people_entry["death"] = details["deathday"]
         people_entry["gender"] = details["gender"]
         people_entry["popular_department"] = details["known_for_department"]
-
+        people_entry["cast_experience"] = []
+        people_entry["crew_experience"] = [
+            {
+                "id": movie_index,
+                "media": movie_entry["title"],
+                "department": person["department"],
+                "job": person["job"]
+            }
+        ]
         response_person.close()
 
         try:
             people_collection.insert_one(people_entry)
             print("Person Added: ", people_entry["name"])
         except pymongo.errors.DuplicateKeyError:
+            people_collection.find_one_and_update(filter={"tag": id_tag_person},
+                                                  update={"$push": {"crew_experience": {
+                                                      "id": movie_index,
+                                                      "media": movie_entry["title"],
+                                                      "department": person["department"],
+                                                      "job": person["job"]
+                                                  }}})
             print("Duplicate Person: ", people_entry["name"])
 
         movie_entry["crew"].append({
@@ -271,9 +300,9 @@ def movie_reaper(url: str,
 
         try:
             review_collection.insert_one(review_entry)
-            print("Review Added: ", review_entry["author_name"])
+            print("Review Added: ", review_entry["author_username"])
         except pymongo.errors.DuplicateKeyError:
-            print("Duplicate Person: ", review_entry["author_name"])
+            print("Duplicate Person: ", review_entry["author_username"])
 
         movie_entry["reviews"].append({
             "id": review_index,
@@ -283,17 +312,11 @@ def movie_reaper(url: str,
             "rating": review["author_details"]["rating"],
         })
     response.close()
-    try:
-        movie_collection.insert_one(movie_entry)
-        print("Movie Added: ", movie_entry["title"])
-    except pymongo.errors.DuplicateKeyError:
-        print("Duplicate Movie: ", movie_entry["title"])
-    return
     """
     
     
     
-        PROVIDERS - NOT IMPLEMENTED
+        PROVIDERS
     
     
     
@@ -302,38 +325,78 @@ def movie_reaper(url: str,
     response = requests.get(url=providers_url, headers=headers)
     watch = response.json()
 
-    entry["providers"] = []
-    for key in watch["results"].keys():
-        language = watch["results"][key]
+    movie_entry["providers"] = []
+    for iso in watch["results"].keys():
+        region = watch["results"][iso]
+        print(region)
 
         renters = []
-        if "rent" in language.keys():
-            for renter in language["rent"]:
-                renters.append({
-                    "provider_name": renter["provider_name"]
-                })
-        buyers = []
-        if "buy" in language.keys():
-            for buyer in language["buy"]:
-                buyers.append({
-                    "provider_name": buyer["provider_name"]
-                })
-        flatrates = []
-        if "flatrate" in language.keys():
-            for flats in language["flatrate"]:
-                flatrates.append({
-                    "provider_name": flats["provider_name"]
-                })
+        if "rent" in region.keys():
+            getProviders("rent", region, iso, renters, movie_entry, providers_collection)
 
-        entry["providers"].append({
-            "country": str(key),
+        buyers = []
+        if "buy" in region.keys():
+            getProviders("buy", region, iso, buyers, movie_entry, providers_collection)
+
+        flatrates = []
+        if "flatrate" in region.keys():
+            getProviders("flatrate", region, iso, flatrates, movie_entry, providers_collection)
+
+        movie_entry["providers"].append({
+            "region": str(iso),
             "rent": renters,
             "buy": buyers,
             "flatrate": flatrates
         })
     response.close()
-    database.append(entry)
+    try:
+        movie_collection.insert_one(movie_entry)
+        print("Movie Added: ", movie_entry["title"])
+    except pymongo.errors.DuplicateKeyError:
+        print("Duplicate Movie: ", movie_entry["title"])
+    return
+
+
+def getProviders(method: str, region: dict, iso: any, provider_list: list, movie_entry: dict,
+                 providers_collection: pymongo.collection.Collection):
+
+    for provider in region[method]:
+        provider_list.append({
+            "provider_name": provider["provider_name"]
+        })
+        provider_document = providers_collection.find_one({"name": provider["provider_name"]})
+        if provider_document:
+
+            if providers_collection.find_one(filter={"name": provider["provider_name"],
+                                                     method + ".media": movie_entry["title"]}):
+
+                providers_collection.update_one(filter={"name": provider["provider_name"],
+                                                        method + ".media": movie_entry["title"]},
+                                                update={"$push": {method + ".$.regions": iso}})
+            else:
+                providers_collection.update_one(filter={"name": provider["provider_name"]},
+                                                update={"$push": {method: {
+                                                    "id": movie_entry["id"],
+                                                    "media": movie_entry["title"],
+                                                    "regions": [iso]
+                                                }}})
+        else:
+            provider_entry = {}
+            provider_entry["id"] = len(list(providers_collection.find()))
+            provider_entry["tag"] = None
+            provider_entry["name"] = provider["provider_name"]
+            provider_entry["rent"] = []
+            provider_entry["buy"] = []
+            provider_entry["flatrate"] = []
+            provider_entry[method] = [{
+                "id": movie_entry["id"],
+                "media": movie_entry["title"],
+                "regions": [iso]
+            }]
+            providers_collection.insert_one(provider_entry)
+
+        print(list(providers_collection.find({"name": provider["provider_name"]})))
 
 
 if __name__ == "__main__":
-    main(0, 10, "movie")
+    main(0, 100, "movie")

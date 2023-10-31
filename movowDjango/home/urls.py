@@ -13,4 +13,5 @@ urlpatterns = [
     path("movie/", views.MovieView.as_view(), name="movieinfo"),
     path("show/", views.ShowView.as_view(), name="showinfo"),
     path("actor/", views.ActorView.as_view(), name="actor"),
+    path("kaboom/", views.get_all_movies)
 ]

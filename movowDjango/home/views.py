@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.views import generic
+import pymongo
+from .models import movie_collection
 
 # Create your views here.
 class HomeView(generic.ListView):
@@ -8,36 +10,42 @@ class HomeView(generic.ListView):
 
     def get_queryset(self):
         return HttpResponse("200")
-    
+
+
 class QuestionView(generic.ListView):
     template_name = "home/question.html"
 
     def get_queryset(self):
         return HttpResponse("200")
 
+
 class ProfileView(generic.ListView):
     template_name = "home/profile.html"
 
     def get_queryset(self):
         return HttpResponse("200")
-    
+
+
 class SignInView(generic.ListView):
     template_name = "home/signin.html"
 
     def get_queryset(self):
         return HttpResponse("200")
-    
+
+
 class ListView(generic.ListView):
     template_name = "home/list.html"
 
     def get_queryset(self):
         return HttpResponse("200")
-    
+
+
 class SearchView(generic.ListView):
     template_name = "home/search.html"
 
     def get_queryset(self):
         return HttpResponse("200")
+
 
 # These need to eventually be Detailed view with a slug
 class MovieView(generic.ListView):
@@ -45,15 +53,22 @@ class MovieView(generic.ListView):
 
     def get_queryset(self):
         return HttpResponse("200")
-    
+
+
 class ShowView(generic.ListView):
     template_name = "home/show_info.html"
 
     def get_queryset(self):
         return HttpResponse("200")
-    
+
+
 class ActorView(generic.ListView):
     template_name = "home/actor.html"
 
     def get_queryset(self):
         return HttpResponse("200")
+
+
+def get_all_movies(request):
+    movies = movie_collection.find()
+    return HttpResponse(movies)
