@@ -11,14 +11,9 @@ def main(start: int, stop: int, media: str) -> None:
                                      "@movow1.yk4hwgi.mongodb.net"
                                      "/?retryWrites=true&w=majority")
     except:
-        pass
+        return
 
     db = client.movow1
-
-    # with open(media + "_data.json", 'r') as dFile:
-    #     dataDict = json.load(dFile)
-    # with open(media + "_id.json", 'r') as iFile:
-    #     idDict = json.load(iFile)
 
     if media == "movie":
         reaper = movie_reaper
@@ -52,15 +47,6 @@ def main(start: int, stop: int, media: str) -> None:
         print(i)
         reaper(BASE_URL + str(i), movie_collection, people_collection, review_collection, providers_collection, headers)
         sleep(1.0)
-
-    # res = people_collection.insert_many(personDict)
-
-    # print(res)
-    #
-    # with open(media + "_data.json", 'w') as dFile:
-    #     json.dump(dataDict, dFile, indent=4)
-    # with open(media + "_id.json", 'w') as iFile:
-    #     json.dump(idDict, iFile, indent=4)
 
 
 def tv_reaper(url: str, database: list, peoplebase: list, identification: dict, headers: dict) -> None:
