@@ -137,7 +137,7 @@ def movie_reaper(url: str,
         people_entry["cast_experience"] = [
             {
                 "id": movie_index,
-                "media_type": 0,
+                "media_type": 0,  # 0 = movie, 1 = show
                 "media": movie_entry["title"],
                 "character": person["character"]
             }
@@ -360,7 +360,7 @@ def getProviders(method: str, region: dict, iso: any, provider_list: list, movie
             }]
             providers_collection.insert_one(provider_entry)
 
-        print(list(providers_collection.find({"name": provider["provider_name"]})))
+        # print(list(providers_collection.find({"name": provider["provider_name"]})))
 
 
 if __name__ == "__main__":

@@ -29,22 +29,22 @@ def main(start: int, stop: int, api_auth: str) -> None:
     review_collection = db["reviews"]
     providers_collection = db["providers"]
 
-    show_collection.drop()
-    show_collection.create_index("tag", unique=True)
+    # show_collection.drop()
+    # show_collection.create_index("tag", unique=True)
     #
-    season_collection.drop()
-    season_collection.create_index("tag", unique=True)
+    # season_collection.drop()
+    # season_collection.create_index("tag", unique=True)
     #
-    episode_collection.drop()
-    episode_collection.create_index("tag", unique=True)
+    # episode_collection.drop()
+    # episode_collection.create_index("tag", unique=True)
     #
-    people_collection.drop()
-    people_collection.create_index("tag", unique=True)
+    # people_collection.drop()
+    # people_collection.create_index("tag", unique=True)
     #
-    review_collection.drop()
+    # review_collection.drop()
     # review_collection.create_index("tag", unique=True)
     #
-    providers_collection.drop()
+    # providers_collection.drop()
 
     for i in range(start, stop):
         print(i)
@@ -116,7 +116,6 @@ def tv_reaper(url: str,
         response_season = requests.get(url=url + "/season/" + str(season["season_number"]), headers=headers)
 
         details = response_season.json()
-        print(details)
         season_name = details["name"].replace(' ', '_').lower().strip()
         season_name = re.sub(r'\W+', '', season_name)
         if details["air_date"]:
@@ -129,7 +128,7 @@ def tv_reaper(url: str,
 
         season_entry["id"] = season_index
         season_entry["tag"] = id_tag_season
-        season_entry["name"] = details["name"]
+        season_entry["title"] = details["name"]
         season_entry["order"] = details["season_number"]
         season_entry["show_id"] = tv_index
         season_entry["audience_rating"] = details["vote_average"]
@@ -144,7 +143,6 @@ def tv_reaper(url: str,
                                             "/episode/" + str(episode["episode_number"]), headers=headers)
 
             details = response_episode.json()
-            print(details)
 
             episode_name = details["name"].replace(' ', '_').lower().strip()
             episode_name = re.sub(r'\W+', '', episode_name)
@@ -158,7 +156,7 @@ def tv_reaper(url: str,
 
             episode_entry["id"] = episode_index
             episode_entry["tag"] = id_tag_episode
-            episode_entry["name"] = details["name"]
+            episode_entry["title"] = details["name"]
             episode_entry["order"] = details["episode_number"]
             episode_entry["season_id"] = season_index
             episode_entry["show_id"] = tv_index
@@ -167,29 +165,57 @@ def tv_reaper(url: str,
 
             season_entry["episodes"].append({
                 "id": episode_index,
-                "name": episode_entry["name"],
+                "name": episode_entry["title"],
                 "order": episode_entry["order"]
             })
             response_episode.close()
 
             try:
                 episode_collection.insert_one(episode_entry)
-                print("Episode Added: ", episode_entry["name"])
+                print("Episode Added: ", episode_entry["title"])
             except:
-                print("Failed to add Episode: ", episode_entry["name"])
+                print("Failed to add Episode: ", episode_entry["title"])
+
+        response = requests.get(url=url + "/season/" + str(season["season_number"]) + "/watch/providers",
+                                headers=headers)
+        watch = response.json()
+
+        season_entry["providers"] = []
+        for iso in watch["results"].keys():
+            region = watch["results"][iso]
+
+            renters = []
+            if "rent" in region.keys():
+                getProviders("rent", region, iso, renters, season_entry, providers_collection)
+
+            buyers = []
+            if "buy" in region.keys():
+                getProviders("buy", region, iso, buyers, season_entry, providers_collection)
+
+            flatrates = []
+            if "flatrate" in region.keys():
+                getProviders("flatrate", region, iso, flatrates, season_entry, providers_collection)
+
+            season_entry["providers"].append({
+                "region": str(iso),
+                "rent": renters,
+                "buy": buyers,
+                "flatrate": flatrates
+            })
+        response.close()
 
         tv_entry["seasons"].append({
             "id": season_index,
-            "name": season_entry["name"],
+            "name": season_entry["title"],
             "order": season_entry["order"]
         })
         response_season.close()
 
         try:
             seasons_collection.insert_one(season_entry)
-            print("Season Added: ", season_entry["name"])
+            print("Season Added: ", season_entry["title"])
         except:
-            print("Failed to add Season: ", season_entry["name"])
+            print("Failed to add Season: ", season_entry["title"])
 
     response.close()
 
@@ -393,7 +419,6 @@ def tv_reaper(url: str,
     tv_entry["providers"] = []
     for iso in watch["results"].keys():
         region = watch["results"][iso]
-        print(region)
 
         renters = []
         if "rent" in region.keys():
@@ -456,8 +481,6 @@ def getProviders(method: str, region: dict, iso: any, provider_list: list, show_
                 "regions": [iso]
             }]
             providers_collection.insert_one(provider_entry)
-
-        print(list(providers_collection.find({"name": provider["provider_name"]})))
 
 
 if __name__ == "__main__":
