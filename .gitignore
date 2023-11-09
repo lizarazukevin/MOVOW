@@ -4,3 +4,5 @@ movowDjango/db.sqlite3
 movowDjango/home/__pycache__/
 movowDjango/movowDjango/__pycache__/
 movowDjango/home/migrations/__pycache__/
+src/postgresSQLOL/__pycache__/
+src/postgresSQLOL/database.ini
