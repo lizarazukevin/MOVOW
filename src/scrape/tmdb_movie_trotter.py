@@ -27,16 +27,16 @@ def main(start: int, stop: int, api_auth: str) -> None:
     review_collection = db["reviews"]
     providers_collection = db["providers"]
 
-    # movie_collection.drop()
-    # movie_collection.create_index("tag", unique=True)
+    movie_collection.drop()
+    movie_collection.create_index("tag", unique=True)
     #
-    # people_collection.drop()
-    # people_collection.create_index("tag", unique=True)
+    people_collection.drop()
+    people_collection.create_index("tag", unique=True)
     #
-    # review_collection.drop()
-    # review_collection.create_index("tag", unique=True)
+    review_collection.drop()
+    review_collection.create_index("tag", unique=True)
     #
-    # providers_collection.drop()
+    providers_collection.drop()
 
     for i in range(start, stop):
         print(i)
@@ -142,6 +142,7 @@ def movie_reaper(url: str,
                 "character": person["character"]
             }
         ]
+        print("CAST: ", person)
         people_entry["crew_experience"] = []
 
         response_person.close()
@@ -168,7 +169,6 @@ def movie_reaper(url: str,
     movie_entry["crew"] = []
     for person in people["crew"]:
         people_entry = {}
-
         response_person = requests.get(url="https://api.themoviedb.org/3/person/" + str(person["id"]), headers=headers)
 
         details = response_person.json()
@@ -200,6 +200,7 @@ def movie_reaper(url: str,
                 "job": person["job"]
             }
         ]
+        print("CREW: ", person)
         response_person.close()
 
         try:

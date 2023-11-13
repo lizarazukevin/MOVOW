@@ -2,12 +2,12 @@
 from configparser import ConfigParser
 
 
-def config(filename='database.ini', section='postgresql'):
+def config(filename="src/postgresSQLOL/database.ini", section='postgresql'):
     # create a parser
     parser = ConfigParser()
     # read config file
     parser.read(filename)
-
+    print(parser.read(filename))
     # get section, default to postgresql
     db = {}
     if parser.has_section(section):

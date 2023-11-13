@@ -16,7 +16,8 @@ def create_tables():
             status          VARCHAR(255),
             audience_rating FLOAT,
             num_ratings     INT,
-            PRIMARY KEY (movie_id)
+            PRIMARY KEY (movie_id),
+            UNIQUE (tag)
         )
         """,
 
@@ -24,7 +25,8 @@ def create_tables():
         CREATE TABLE genres (
             genre_id        INT                 GENERATED ALWAYS AS IDENTITY,
             genre_name      VARCHAR(255)        NOT NULL,
-            PRIMARY KEY (genre_id)
+            PRIMARY KEY (genre_id),
+            UNIQUE (genre_name)
         )
         """,
 
@@ -32,8 +34,12 @@ def create_tables():
         CREATE TABLE movie_genres (
             movie_id        INT,
             genre_id        INT,
-            FOREIGN KEY (movie_id) REFERENCES movies(movie_id),
-            FOREIGN KEY (genre_id) REFERENCES genres(genre_id)
+            FOREIGN KEY (movie_id) 
+                REFERENCES movies(movie_id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (genre_id) 
+                REFERENCES genres(genre_id)
+                ON UPDATE CASCADE ON DELETE CASCADE
         )
         """,
 
@@ -46,7 +52,8 @@ def create_tables():
             death           DATE,
             gender          int,
             department      VARCHAR(255),
-            PRIMARY KEY (person_id)
+            PRIMARY KEY (person_id),
+            UNIQUE (tag)
         )
         """,
 
@@ -54,22 +61,42 @@ def create_tables():
         CREATE TABLE people_aliases (
             person_id       INT,
             name            VARCHAR(255),
-            FOREIGN KEY (person_id) REFERENCES people(person_id)
+            FOREIGN KEY (person_id) 
+                REFERENCES people(person_id)
+                ON UPDATE CASCADE ON DELETE CASCADE
         )
         """,
 
         """
-        CREATE TABLE movie_credits (
+        CREATE TABLE movie_casting_credits (
             credit_id       SERIAL              NOT NULL,
             movie_id        INT                 NOT NULL,
             person_id       INT                 NOT NULL,
-            role            INT,
             character       VARCHAR(255),
+            PRIMARY KEY (credit_id),
+            FOREIGN KEY (movie_id) 
+                REFERENCES movies(movie_id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (person_id) 
+                REFERENCES people(person_id)
+                ON UPDATE CASCADE ON DELETE CASCADE
+        )
+        """,
+
+        """
+        CREATE TABLE movie_crew_credits (
+            credit_id       SERIAL              NOT NULL,
+            movie_id        INT                 NOT NULL,
+            person_id       INT                 NOT NULL,
             department      VARCHAR(255),
             job             VARCHAR(255),
             PRIMARY KEY (credit_id),
-            FOREIGN KEY (movie_id) REFERENCES movies(movie_id),
-            FOREIGN KEY (person_id) REFERENCES people(person_id)
+            FOREIGN KEY (movie_id) 
+                REFERENCES movies(movie_id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (person_id) 
+                REFERENCES people(person_id)
+                ON UPDATE CASCADE ON DELETE CASCADE
         )
         """,
 
@@ -86,7 +113,10 @@ def create_tables():
             origin          VARCHAR(255)        NOT NULL,
             reference       VARCHAR(511),
             PRIMARY KEY (review_id),
-            FOREIGN KEY (movie_id) REFERENCES movies(movie_id)
+            FOREIGN KEY (movie_id) 
+                REFERENCES movies(movie_id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            UNIQUE (tag)
         )
         """,
 
@@ -116,9 +146,15 @@ def create_tables():
             buy_price       FLOAT,
             flatrate        BOOL                NOT NULL,
             flatrate_price  FLOAT,
-            FOREIGN KEY (movie_id) REFERENCES movies(movie_id),
-            FOREIGN KEY (region_id) REFERENCES regions(iso),
-            FOREIGN KEY (provider_id) REFERENCES providers(provider_id)
+            FOREIGN KEY (movie_id) 
+                REFERENCES movies(movie_id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (region_id) 
+                REFERENCES regions(iso)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            FOREIGN KEY (provider_id)
+                REFERENCES providers(provider_id)
+                ON UPDATE CASCADE ON DELETE CASCADE
         )
         """
     )
