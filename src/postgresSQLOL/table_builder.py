@@ -50,7 +50,7 @@ def create_tables():
             person_name     VARCHAR(255)        NOT NULL,
             birthday        DATE,
             death           DATE,
-            gender          int,
+            gender          INT,
             department      VARCHAR(255),
             PRIMARY KEY (person_id),
             UNIQUE (tag)
@@ -106,12 +106,13 @@ def create_tables():
             movie_id        INT                 NOT NULL,
             tag             VARCHAR(255)        NOT NULL,
             author_name     VARCHAR(255),
-            author_username VARCHAR(255)        NOT NULL,
-            content         VARCHAR(2047)       NOT NULL,
+            author_username VARCHAR(255),
+            rating          FLOAT,
+            content         VARCHAR(4095),
             time_created    TIMESTAMP,
             time_updated    TIMESTAMP,
             origin          VARCHAR(255)        NOT NULL,
-            reference       VARCHAR(511),
+            reference       VARCHAR(2047)       NOT NULL,
             PRIMARY KEY (review_id),
             FOREIGN KEY (movie_id) 
                 REFERENCES movies(movie_id)
@@ -121,24 +122,27 @@ def create_tables():
         """,
 
         """
-        CREATE TABLE providers (
-            provider_id     INT                 NOT NULL,
-            provider_name   VARCHAR(255)        NOT NULL,
-            PRIMARY KEY (provider_id)
+        CREATE TABLE regions (
+            region_id       INT                 GENERATED ALWAYS AS IDENTITY, 
+            iso             VARCHAR(255)        NOT NULL,
+            PRIMARY KEY (region_id),
+            UNIQUE (iso)
         )
         """,
 
         """
-        CREATE TABLE regions (
-            iso             VARCHAR(255)        NOT NULL,
-            PRIMARY KEY (iso)
+        CREATE TABLE providers (
+            provider_id     INT                 GENERATED ALWAYS AS IDENTITY,
+            provider_name   VARCHAR(255)        NOT NULL,
+            PRIMARY KEY (provider_id),
+            UNIQUE (provider_name)
         )
         """,
 
         """
         CREATE TABLE region_provided_movies (
             movie_id        INT                 NOT NULL,
-            region_id       VARCHAR(255)        NOT NULL,
+            region_id       INT                 NOT NULL,
             provider_id     INT                 NOT NULL,
             rent            BOOL                NOT NULL,
             rent_price      FLOAT,
@@ -150,7 +154,7 @@ def create_tables():
                 REFERENCES movies(movie_id)
                 ON UPDATE CASCADE ON DELETE CASCADE,
             FOREIGN KEY (region_id) 
-                REFERENCES regions(iso)
+                REFERENCES regions(region_id)
                 ON UPDATE CASCADE ON DELETE CASCADE,
             FOREIGN KEY (provider_id)
                 REFERENCES providers(provider_id)
