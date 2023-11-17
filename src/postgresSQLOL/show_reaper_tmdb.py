@@ -10,7 +10,7 @@ from credit_reaper import credit_reaper
 
 
 def main(start: int, stop: int, api_auth: str) -> None:
-    BASE_URL = "https://api.themoviedb.org/3/movie/"
+    BASE_URL = "https://api.themoviedb.org/3/tv/"
 
     headers = {
         "accept": "application/json",
@@ -24,11 +24,12 @@ def main(start: int, stop: int, api_auth: str) -> None:
         # connect to the PostgreSQL server
         conn = psycopg2.connect(**params)
         conn.set_session(autocommit=True)
+        conn.set_client_encoding('UTF8')
         cur = conn.cursor()
         # create table one by one
         for i in range(start, stop):
             print(i)
-            movie_reaper(BASE_URL + str(i), cur, conn, headers)
+            show_reaper(BASE_URL + str(i), cur, conn, headers)
             sleep(1.0)
         # close communication with the PostgreSQL database server
         cur.close()
@@ -39,7 +40,7 @@ def main(start: int, stop: int, api_auth: str) -> None:
             conn.close()
 
 
-def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
+def show_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
     response = requests.get(url=url, headers=headers)
     details = response.json()
     print(url)
@@ -48,71 +49,119 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
         return
     """
     --------------------------------------------------------------------------------------------------------------------
-        GET ALL OF THE IMPORTANT MOVIE DETAILS
+        GET ALL OF THE IMPORTANT SHOW DETAILS
     --------------------------------------------------------------------------------------------------------------------
     """
-    # Provides movies with an incrementing ID that's protected by a unique tag
-    name = details["title"].replace(' ', '_').lower().strip()
-    name = re.sub(r'\W+', '', name)
-    date = details["release_date"].replace('-', '_').strip()
-    id_tag_movie = name + '_' + date
+    movie_name = details["name"].replace(' ', '_').lower().strip()
+    movie_name = re.sub(r'\W+', '', movie_name)
+    date = details["first_air_date"].replace('-', '_').strip()
+    id_tag_tv = movie_name + '_' + date
 
     try:
-        query = sql.SQL("INSERT INTO {table} ({fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)").format(
-            table=sql.Identifier('movies'),
+        query = sql.SQL("INSERT INTO {table} ({fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)").format(
+            table=sql.Identifier('shows'),
             fields=sql.SQL(',').join([
                 sql.Identifier('tag'),
-                sql.Identifier('movie_title'),
+                sql.Identifier('show_title'),
                 sql.Identifier('original_title'),
-                sql.Identifier('release_date'),
-                sql.Identifier('runtime'),
-                sql.Identifier('status'),
-                sql.Identifier('audience_rating'),
-                sql.Identifier('num_ratings')
+                sql.Identifier('initial_release'),
+                sql.Identifier('final_release'),
+                sql.Identifier('num_episodes'),
+                sql.Identifier('num_seasons'),
+                sql.Identifier('in_production'),
+                sql.Identifier('status')
+
             ])
 
         )
-        cursor.execute(query, (id_tag_movie, details["title"], details["original_title"], details["release_date"],
-                               details["runtime"], details["status"], details["vote_average"], details["vote_count"]))
+        cursor.execute(query, (id_tag_tv, details["name"], details["original_name"], details["first_air_date"],
+                               details["last_air_date"], details["number_of_episodes"], details["number_of_seasons"],
+                               details["in_production"], details["status"]))
 
     except psycopg2.DatabaseError as e:
-        print("Movie Duplicate")
+        print("Show Duplicate")
         return
 
-    """
-    --------------------------------------------------------------------------------------------------------------------
-        GET MOVIE GENRES AND LINK TO MOVIES
-    --------------------------------------------------------------------------------------------------------------------
-    """
-    for genre in details["genres"]:
+    for season in details["seasons"]:
+
+        response_season = requests.get(url=url + "/season/" + str(season["season_number"]), headers=headers)
+        details = response_season.json()
+
+        season_name = details["name"].replace(' ', '_').lower().strip()
+        season_name = re.sub(r'\W+', '', season_name)
+        if details["air_date"]:
+            date = details["air_date"].replace('-', '_').strip()
+        else:
+            date = "0000_00_00"
+        id_tag_season = movie_name + '_' + season_name + '_' + date
         try:
-            query = sql.SQL("INSERT INTO {table} ({col1}) VALUES (%s)").format(
-                table=sql.Identifier('genres'),
-                col1=sql.Identifier('genre_name')
+            query = sql.SQL("INSERT INTO {table} ({fields}) "
+                            "VALUES ("
+                            "(SELECT {query_col} FROM {query_table} WHERE {query_cond} = %s), "
+                            "%s, %s, %s, %s, %s, %s)").format(
+                table=sql.Identifier('seasons'),
+                fields=sql.SQL(',').join([
+                    sql.Identifier('show_id'),
+                    sql.Identifier('tag'),
+                    sql.Identifier('season_title'),
+                    sql.Identifier('chron_order'),
+                    sql.Identifier('num_episodes'),
+                    sql.Identifier('audience_rating'),
+                    sql.Identifier('num_ratings')
+                ]),
+                query_col=sql.Identifier('show_id'),
+                query_table=sql.Identifier('shows'),
+                query_cond=sql.Identifier('tag')
             )
-            cursor.execute(query, (genre["name"],))
+            cursor.execute(query, (id_tag_tv, id_tag_season, details["name"], details["season_number"],
+                                   len(details["episodes"]), details["vote_average"], None))
         except psycopg2.DatabaseError as e:
-            # Expected
+            print("Season Duplicate")
             pass
 
-        try:
-            query = sql.SQL("INSERT INTO {insert_table} ({insert_value1}, {insert_value2}) "
-                            "VALUES ("
-                            "(SELECT {query_column1} FROM {query_table1} WHERE {query_cond1} = %s), "
-                            "(SELECT {query_column2} FROM {query_table2} WHERE {query_cond2} = %s))").format(
-                insert_table=sql.Identifier('movie_genres'),
-                insert_value1=sql.Identifier('movie_id'),
-                insert_value2=sql.Identifier('genre_id'),
-                query_column1=sql.Identifier("movie_id"),
-                query_table1=sql.Identifier("movies"),
-                query_cond1=sql.Identifier("tag"),
-                query_column2=sql.Identifier("genre_id"),
-                query_table2=sql.Identifier("genres"),
-                query_cond2=sql.Identifier("genre_name")
-            )
-            cursor.execute(query, (id_tag_movie, genre["name"]))
-        except psycopg2.DatabaseError as e:
-            print("something went wrong: ", e)
+        credit_reaper(url=url,
+                      headers=headers,
+                      cursor=cursor,
+                      media='season',
+                      parent_tag=id_tag_season)
+
+        for episode in details["episodes"]:
+            response_episode = requests.get(url=url + "/season/" + str(season["season_number"]) +
+                                                "/episode/" + str(episode["episode_number"]), headers=headers)
+
+            details = response_episode.json()
+
+            episode_name = details["name"].replace(' ', '_').lower().strip()
+            episode_name = re.sub(r'\W+', '', episode_name)
+            if details["air_date"]:
+                date = details["air_date"].replace('-', '_').strip()
+            else:
+                date = "0000_00_00"
+            id_tag_episode = movie_name + '_' + season_name + '_' + episode_name + '_' + date
+            try:
+                query = sql.SQL("INSERT INTO {table} ({fields}) "
+                                "VALUES ("
+                                "(SELECT {query_col} FROM {query_table} WHERE {query_cond} = %s), "
+                                "%s, %s, %s, %s, %s, %s)").format(
+                    table=sql.Identifier('episodes'),
+                    fields=sql.SQL(',').join([
+                        sql.Identifier('season_id'),
+                        sql.Identifier('tag'),
+                        sql.Identifier('episode_title'),
+                        sql.Identifier('chron_order'),
+                        sql.Identifier('runtime'),
+                        sql.Identifier('audience_rating'),
+                        sql.Identifier('num_ratings')
+                    ]),
+                    query_col=sql.Identifier('season_id'),
+                    query_table=sql.Identifier('seasons'),
+                    query_cond=sql.Identifier('tag')
+                )
+                cursor.execute(query, (id_tag_season, id_tag_episode, details["name"], details["episode_number"],
+                                       details["runtime"], details["vote_average"], details["vote_count"]))
+
+            except psycopg2.DatabaseError as e:
+                print("Episode Duplicate")
     response.close()
     """
     --------------------------------------------------------------------------------------------------------------------
@@ -122,11 +171,11 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
     credit_reaper(url=url,
                   headers=headers,
                   cursor=cursor,
-                  media='movie',
-                  parent_tag=id_tag_movie)
+                  media='show',
+                  parent_tag=id_tag_tv)
     """
     --------------------------------------------------------------------------------------------------------------------
-    GET ALL OF THE MOVIE REVIEWS
+    GET ALL OF THE SHOW REVIEWS
     --------------------------------------------------------------------------------------------------------------------
     """
     reviews_url = url + "/reviews"
@@ -147,9 +196,9 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
                             "VALUES ("
                             "(SELECT {query_col1} FROM {query_table1} WHERE {query_cond1} = %s), "
                             "%s, %s, %s, %s, %s, %s, %s, %s, %s)").format(
-                table=sql.Identifier('movie_reviews'),
+                table=sql.Identifier('show_reviews'),
                 fields=sql.SQL(',').join([
-                    sql.Identifier('movie_id'),
+                    sql.Identifier('show_id'),
                     sql.Identifier('tag'),
                     sql.Identifier('author_name'),
                     sql.Identifier('author_username'),
@@ -160,12 +209,12 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
                     sql.Identifier('origin'),
                     sql.Identifier('reference')
                 ]),
-                query_col1=sql.Identifier('movie_id'),
-                query_table1=sql.Identifier('movies'),
+                query_col1=sql.Identifier('show_id'),
+                query_table1=sql.Identifier('shows'),
                 query_cond1=sql.Identifier('tag')
 
             )
-            cursor.execute(query, (id_tag_movie, id_tag_review, details["author_details"]["name"],
+            cursor.execute(query, (id_tag_tv, id_tag_review, details["author_details"]["name"],
                                    details["author_details"]["username"], details["author_details"]["rating"],
                                    details["content"], details["created_at"], details["updated_at"], 'TMDB',
                                    details["url"]))
@@ -218,9 +267,9 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
                                 "(SELECT {query_col2} FROM {query_table2} WHERE {query_cond2} = %s), "
                                 "(SELECT {query_col3} FROM {query_table3} WHERE {query_cond3} = %s), "
                                 "%s, %s, %s, %s, %s, %s)").format(
-                    table=sql.Identifier('region_provided_movies'),
+                    table=sql.Identifier('region_provided_shows'),
                     fields=sql.SQL(',').join([
-                        sql.Identifier('movie_id'),
+                        sql.Identifier('show_id'),
                         sql.Identifier('region_id'),
                         sql.Identifier('provider_id'),
                         sql.Identifier('rent'),
@@ -230,8 +279,8 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
                         sql.Identifier('flatrate'),
                         sql.Identifier('flatrate_price'),
                     ]),
-                    query_col1=sql.Identifier('movie_id'),
-                    query_table1=sql.Identifier('movies'),
+                    query_col1=sql.Identifier('show_id'),
+                    query_table1=sql.Identifier('shows'),
                     query_cond1=sql.Identifier('tag'),
                     query_col2=sql.Identifier('region_id'),
                     query_table2=sql.Identifier('regions'),
@@ -241,7 +290,7 @@ def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
                     query_cond3=sql.Identifier('provider_name')
 
                 )
-                cursor.execute(query, (id_tag_movie, iso, provider, purchase_info["rent"], None,
+                cursor.execute(query, (id_tag_tv, iso, provider, purchase_info["rent"], None,
                                        purchase_info["buy"], None, purchase_info["flatrate"], None))
             except psycopg2.DatabaseError as e:
                 print("Something went wrong: ", e)

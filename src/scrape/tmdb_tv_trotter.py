@@ -29,22 +29,22 @@ def main(start: int, stop: int, api_auth: str) -> None:
     review_collection = db["reviews"]
     providers_collection = db["providers"]
 
-    # show_collection.drop()
-    # show_collection.create_index("tag", unique=True)
+    show_collection.drop()
+    show_collection.create_index("tag", unique=True)
     #
-    # season_collection.drop()
-    # season_collection.create_index("tag", unique=True)
+    season_collection.drop()
+    season_collection.create_index("tag", unique=True)
     #
-    # episode_collection.drop()
-    # episode_collection.create_index("tag", unique=True)
+    episode_collection.drop()
+    episode_collection.create_index("tag", unique=True)
     #
-    # people_collection.drop()
-    # people_collection.create_index("tag", unique=True)
+    people_collection.drop()
+    people_collection.create_index("tag", unique=True)
     #
-    # review_collection.drop()
-    # review_collection.create_index("tag", unique=True)
+    review_collection.drop()
+    review_collection.create_index("tag", unique=True)
     #
-    # providers_collection.drop()
+    providers_collection.drop()
 
     for i in range(start, stop):
         print(i)
@@ -84,7 +84,6 @@ def tv_reaper(url: str,
         print("Duplicate Show")
         return
     tv_index = len(list(show_collection.find()))
-
     # Get movie info
     tv_entry["id"] = tv_index
     tv_entry["tag"] = id_tag_tv
