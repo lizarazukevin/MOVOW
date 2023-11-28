@@ -6,3 +6,4 @@ movowDjango/movowDjango/__pycache__/
 movowDjango/home/migrations/__pycache__/
 src/postgresSQLOL/__pycache__/
 src/postgresSQLOL/database.ini
+*.env

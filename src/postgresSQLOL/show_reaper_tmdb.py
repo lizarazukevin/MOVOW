@@ -24,7 +24,6 @@ def main(start: int, stop: int, api_auth: str) -> None:
         # connect to the PostgreSQL server
         conn = psycopg2.connect(**params)
         conn.set_session(autocommit=True)
-        conn.set_client_encoding('UTF8')
         cur = conn.cursor()
         # create table one by one
         for i in range(start, stop):

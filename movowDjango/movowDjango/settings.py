@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +27,8 @@ SECRET_KEY = "django-insecure-04qu*twfar-#b6l9)tn4k%ha553^(9^fbs*hp6v-#b=pz76fv_
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
+dotenv.load_dotenv()
 
 # Application definition
 
@@ -72,15 +76,14 @@ WSGI_APPLICATION = "movowDjango.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    # "default": {
-    #     "ENGINE": "djongo",
-    #     "NAME": "movow1",
-    #     "ENFORCE_SCHEMA": False,
-    #     "CLIENT": {
-    #         "host": "mongodb+srv://jasperemick:lB7P6QQdJtrox4k9@movow1.yk4hwgi.mongodb.net"
-    #                 "/?retryWrites=true&w=majority"
-    #     }
-    # }
+    "default": {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASS': os.getenv('DB_PASS'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
+    }
 }
 
 # Password validation
