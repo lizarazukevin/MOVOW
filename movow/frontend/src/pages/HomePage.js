@@ -9,7 +9,7 @@ const HomePage = () => {
 
     const getMovies = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/movies/');
+            const response = await fetch('/api/movies/');
             console.log(response)
             const data = await response.json();
             setMovies(data);
