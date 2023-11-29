@@ -1,6 +1,7 @@
 .idea/
 venv/
-movowDjango/db.sqlite3
-movowDjango/home/__pycache__/
-movowDjango/movowDjango/__pycache__/
-movowDjango/home/migrations/__pycache__/
+movow/db.sqlite3
+movow/api/__pycache__/
+movow/movow/__pycache__/
+movow/api/migrations/__pycache__/
+movow/.env
