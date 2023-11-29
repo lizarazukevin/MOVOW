@@ -1,5 +1,7 @@
 from django.shortcuts import render
 
+from django.db import DatabaseError
+
 from .models import *
 from .serializers import *
 
@@ -23,6 +25,11 @@ def getRoutes(request):
 # Get list of all movies
 @api_view(['GET'])
 def getMovies(request):
-    movies = Movies.objects.all()
-    serializer = MovieSerializer(movies, many=True)
-    return Response(serializer.data)
+    try:
+        movies = Movies.objects.all()
+        serializer = MovieSerializer(movies, many=True)
+        return Response(serializer.data)
+    except DatabaseError as e:
+        # Log the error
+        print(f"Database Error: {e}")
+        return Response({"error": "Internal Server Error"}, 500)
