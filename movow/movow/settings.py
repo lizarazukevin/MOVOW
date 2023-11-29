@@ -13,6 +13,8 @@ import os
 import dotenv
 
 from pathlib import Path
+import dotenv
+import os
 
 dotenv.load_dotenv()
 
@@ -31,6 +33,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
+
+dotenv.load_dotenv()
 
 # Application definition
 
@@ -90,7 +94,7 @@ DATABASES = {
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASS"),
         "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
+        "PORT": os.getenv("DB_PORT")
     }
 }
 

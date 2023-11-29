@@ -27,16 +27,16 @@ def main(start: int, stop: int, api_auth: str) -> None:
     review_collection = db["reviews"]
     providers_collection = db["providers"]
 
-    # movie_collection.drop()
-    # movie_collection.create_index("tag", unique=True)
+    movie_collection.drop()
+    movie_collection.create_index("tag", unique=True)
     #
-    # people_collection.drop()
-    # people_collection.create_index("tag", unique=True)
+    people_collection.drop()
+    people_collection.create_index("tag", unique=True)
     #
-    # review_collection.drop()
-    # review_collection.create_index("tag", unique=True)
+    review_collection.drop()
+    review_collection.create_index("tag", unique=True)
     #
-    # providers_collection.drop()
+    providers_collection.drop()
 
     for i in range(start, stop):
         print(i)
@@ -73,7 +73,9 @@ def movie_reaper(url: str,
     date = details["release_date"].replace('-', '_').strip()
     id_tag_movie = name + '_' + date
     # duplication prevention could be handled here
-
+    if movie_collection.find_one(filter={"tag": id_tag_movie}):
+        print("Duplicate Movie")
+        return
     movie_index = len(list(movie_collection.find()))
 
     # Get movie info
@@ -111,8 +113,7 @@ def movie_reaper(url: str,
     for person in people["cast"]:
         people_entry = {}
 
-        personUrl = "https://api.themoviedb.org/3/person/" + str(person["id"])
-        response_person = requests.get(url=personUrl, headers=headers)
+        response_person = requests.get(url="https://api.themoviedb.org/3/person/" + str(person["id"]), headers=headers)
 
         details = response_person.json()
 
@@ -136,10 +137,12 @@ def movie_reaper(url: str,
         people_entry["cast_experience"] = [
             {
                 "id": movie_index,
+                "media_type": 0,  # 0 = movie, 1 = show
                 "media": movie_entry["title"],
                 "character": person["character"]
             }
         ]
+        print("CAST: ", person)
         people_entry["crew_experience"] = []
 
         response_person.close()
@@ -151,6 +154,7 @@ def movie_reaper(url: str,
             people_collection.find_one_and_update(filter={"tag": id_tag_person},
                                                   update={"$push": {"cast_experience": {
                                                       "id": movie_index,
+                                                      "media_type": 0,
                                                       "media": movie_entry["title"],
                                                       "character": person["character"]
                                                   }}})
@@ -165,9 +169,7 @@ def movie_reaper(url: str,
     movie_entry["crew"] = []
     for person in people["crew"]:
         people_entry = {}
-
-        personUrl = "https://api.themoviedb.org/3/person/" + str(person["id"])
-        response_person = requests.get(url=personUrl, headers=headers)
+        response_person = requests.get(url="https://api.themoviedb.org/3/person/" + str(person["id"]), headers=headers)
 
         details = response_person.json()
 
@@ -192,20 +194,24 @@ def movie_reaper(url: str,
         people_entry["crew_experience"] = [
             {
                 "id": movie_index,
+                "media_type": 0,
                 "media": movie_entry["title"],
                 "department": person["department"],
                 "job": person["job"]
             }
         ]
+        print("CREW: ", person)
         response_person.close()
 
         try:
             people_collection.insert_one(people_entry)
             print("Person Added: ", people_entry["name"])
         except pymongo.errors.DuplicateKeyError:
+            # If the person already exists in the database only their experience is updated
             people_collection.find_one_and_update(filter={"tag": id_tag_person},
                                                   update={"$push": {"crew_experience": {
                                                       "id": movie_index,
+                                                      "media_type": 0,
                                                       "media": movie_entry["title"],
                                                       "department": person["department"],
                                                       "job": person["job"]
@@ -235,8 +241,7 @@ def movie_reaper(url: str,
     movie_entry["reviews"] = []
     for review in reviews_TMDB["results"]:
         review_entry = {}
-        reviewsurl = "https://api.themoviedb.org/3/review/" + str(review["id"])
-        response_review = requests.get(url=reviewsurl, headers=headers)
+        response_review = requests.get(url="https://api.themoviedb.org/3/review/" + str(review["id"]), headers=headers)
 
         details = response_review.json()
         name = details["author_details"]["username"].replace(' ', '_').lower().strip()
@@ -267,7 +272,7 @@ def movie_reaper(url: str,
             review_collection.insert_one(review_entry)
             print("Review Added: ", review_entry["author_username"])
         except pymongo.errors.DuplicateKeyError:
-            print("Duplicate Person: ", review_entry["author_username"])
+            print("Duplicate Review: ", review_entry["author_username"])
 
         movie_entry["reviews"].append({
             "id": review_index,
@@ -314,12 +319,9 @@ def movie_reaper(url: str,
             "flatrate": flatrates
         })
     response.close()
-    try:
-        movie_collection.insert_one(movie_entry)
-        print("Movie Added: ", movie_entry["title"])
-    except pymongo.errors.DuplicateKeyError:
-        print("Duplicate Movie: ", movie_entry["title"])
-    return
+
+    # Theoretically should never fail
+    movie_collection.insert_one(movie_entry)
 
 
 def getProviders(method: str, region: dict, iso: any, provider_list: list, movie_entry: dict,
@@ -359,7 +361,7 @@ def getProviders(method: str, region: dict, iso: any, provider_list: list, movie
             }]
             providers_collection.insert_one(provider_entry)
 
-        print(list(providers_collection.find({"name": provider["provider_name"]})))
+        # print(list(providers_collection.find({"name": provider["provider_name"]})))
 
 
 if __name__ == "__main__":
