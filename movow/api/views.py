@@ -8,6 +8,7 @@ from .serializers import *
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 
+
 # Default routes
 @api_view(['GET'])
 def getRoutes(request):
@@ -21,6 +22,7 @@ def getRoutes(request):
     ]
 
     return Response(routes)
+
 
 # Get list of all movies
 @api_view(['GET'])
