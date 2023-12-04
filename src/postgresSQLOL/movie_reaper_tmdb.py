@@ -1,12 +1,13 @@
 from time import sleep
 import argparse
-import sys
+import os
 import psycopg2
 from config import config
 import requests
 import re
 from psycopg2 import sql
 from credit_reaper import credit_reaper
+import dotenv
 
 
 def main(start: int, stop: int, api_auth: str) -> None:
@@ -28,7 +29,7 @@ def main(start: int, stop: int, api_auth: str) -> None:
         # create table one by one
         for i in range(start, stop):
             print(i)
-            movie_reaper(BASE_URL + str(i), cur, conn, headers)
+            movie_reaper(BASE_URL + str(i), cur, headers)
             sleep(1.0)
         # close communication with the PostgreSQL database server
         cur.close()
@@ -39,7 +40,7 @@ def main(start: int, stop: int, api_auth: str) -> None:
             conn.close()
 
 
-def movie_reaper(url: str, cursor: any, conn: any, headers: dict) -> None:
+def movie_reaper(url: str, cursor: any, headers: dict) -> None:
     response = requests.get(url=url, headers=headers)
     details = response.json()
     print(url)
@@ -282,6 +283,7 @@ if __name__ == "__main__":
     start = int(args.start)
     end = int(args.end)
 
-    main(start, end, "Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0NWFkMWQ5YzE0ZGVlNjAxZjJmMDZiNGZkY"
-                     "jJmMmQ5NSIsInN1YiI6IjY1MWM1MzNlZWE4NGM3MDEwYzE0N2M5YiIsInNjb3BlcyI6WyJhcG"
-                     "lfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.kaQbTtDsjaWixw5bn3RI-KpZJnHW622dbDbgThzrkaU")
+    dotenv.load_dotenv()
+    key = os.getenv("API_KEY")
+
+    main(start, end, key)

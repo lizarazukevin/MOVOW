@@ -5,6 +5,7 @@ movow/api/__pycache__/
 movow/movow/__pycache__/
 movow/api/migrations/__pycache__/
 src/postgresSQLOL/__pycache__/
+src/old_scrape_mongodb/__pycache__/
 __pycache__
 *.ini
 *.env

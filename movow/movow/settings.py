@@ -13,7 +13,6 @@ import os
 import dotenv
 
 from pathlib import Path
-import dotenv
 import os
 
 dotenv.load_dotenv()
@@ -32,9 +31,6 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-
-
-dotenv.load_dotenv()
 
 # Application definition
 
