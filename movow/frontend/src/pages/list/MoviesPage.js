@@ -21,7 +21,7 @@ const MoviesPage = () => {
     return (
         <div className='home'>
             <h1>Movies</h1>
-            <Button to='/'>Movies Page</Button>
+            <Button to='/'>Home Page</Button>
             <br/>
             <p>Movies In Database: {movies.length}</p>
             <div className='movies-list'>
