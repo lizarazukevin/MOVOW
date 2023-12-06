@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
+import Button from '../../components/Button'
 
-const HomePage = () => {
+const MoviesPage = () => {
     const [movies, setMovies] = useState([]);
 
     useEffect(() => {
@@ -10,7 +11,6 @@ const HomePage = () => {
     const getMovies = async () => {
         try {
             const response = await fetch('/api/movies/');
-            console.log(response)
             const data = await response.json();
             setMovies(data);
         } catch (error) {
@@ -20,9 +20,10 @@ const HomePage = () => {
 
     return (
         <div className='home'>
-            <h1>MOVOW Home</h1>
+            <h1>Movies</h1>
+            <Button to='/'>Movies Page</Button>
+            <br/>
             <p>Movies In Database: {movies.length}</p>
-
             <div className='movies-list'>
                 {movies.map((movie, index) => (
                     <div key={index} className='movie-item'>
@@ -34,4 +35,4 @@ const HomePage = () => {
     );
 };
 
-export default HomePage;
+export default MoviesPage;

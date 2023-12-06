@@ -6,6 +6,11 @@ class MovieSerializer(ModelSerializer):
         model = Movies
         fields = '__all__'
 
+class ShowSerializer(ModelSerializer):
+    class Meta:
+        model = Shows
+        fields = '__all__'
+        
 class GenreSerializer(ModelSerializer):
     class Meta:
         model = Genres

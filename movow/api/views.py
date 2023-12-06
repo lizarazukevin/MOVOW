@@ -18,11 +18,16 @@ def getRoutes(request):
             'body': None,
             'description': 'Return a list of all the movies'
         },
+        {
+            'Endpoint': '/shows/',
+            'method': 'GET',
+            'body': None,
+            'description': 'Return a list of all the shows'  
+        }
     ]
 
     return Response(routes)
 
-# Get list of all movies
 @api_view(['GET'])
 def getMovies(request):
     try:
@@ -30,6 +35,16 @@ def getMovies(request):
         serializer = MovieSerializer(movies, many=True)
         return Response(serializer.data)
     except DatabaseError as e:
-        # Log the error
+        print(f"Database Error: {e}")
+        return Response({"error": "Internal Server Error"}, 500)
+    
+
+@api_view(['GET'])
+def getShows(request):
+    try:
+        shows = Shows.objects.all()
+        serializer = ShowSerializer(shows, many=True)
+        return Response(serializer.data)
+    except DatabaseError as e:
         print(f"Database Error: {e}")
         return Response({"error": "Internal Server Error"}, 500)
